@@ -55,7 +55,7 @@ class Event extends Base {
 			$duration              = (int) isset( $post_meta['_EventDuration'][0] ) ? $post_meta['_EventDuration'][0] : null;
 			$timezone_string       = Timezones::get_event_timezone_string( $post_id );
 			$all_day               = tribe_is_truthy( isset( $post_meta['_EventAllDay'][0] ) ? $post_meta['_EventAllDay'][0] : null );
-			$end_of_day            = tribe_end_of_day( $start_date );
+			$end_of_day            = Dates::get_shifted_end_of_day( $start_date );
 			$timezone              = Timezones::build_timezone_object( $timezone_string );
 			$site_timezone         = Timezones::build_timezone_object();
 			$utc_timezone          = new DateTimezone( 'UTC' );
@@ -112,11 +112,11 @@ class Event extends Base {
 				list( $week_start, $week_end ) = Dates::get_week_start_end( $filter );
 
 				$week_start_w_cutoff = Dates::build_date_object(
-					tribe_beginning_of_day( $week_start->format( Dates::DBDATETIMEFORMAT ) ),
+					Dates::get_shifted_start_of_day( $week_start ),
 					$week_start->getTimezone()
 				);
 				$week_end_w_cutoff   = Dates::build_date_object(
-					tribe_end_of_day( $week_end->format( Dates::DBDATETIMEFORMAT ) ),
+					Dates::get_shifted_end_of_day( $week_end ),
 					$week_end->getTimezone()
 				);
 
@@ -134,6 +134,9 @@ class Event extends Base {
 				$week_end_ymd   = (int) $week_end->format( 'Ymd' );
 				$the_start_ymd  = (int) $the_start->format( 'Ymd' );
 				$the_end_ymd    = (int) $the_end->format( 'Ymd' );
+				if ( $all_day ) {
+					$the_end_ymd = (int) Dates::get_shifted_end_of_day( $the_end )->format( 'Ymd' );
+				}
 
 				if ( $use_event_timezone ) {
 					$starts_this_week  = $week_start_ymd <= $the_start_ymd && $the_start_ymd <= $week_end_ymd;
@@ -150,7 +153,7 @@ class Event extends Base {
 				 * A day "crosses the EOD cutoff time" if the end is after the EOD cutoff of the start.
 				 * Here we look just for a boolean.
 				 */
-				$cross_day = tribe_end_of_day( $the_start->format( 'Y-m-d' ) ) < $the_end->format( 'Y-m-d H:i:s' );
+				$cross_day = Dates::get_shifted_end_of_day( $the_start ) < $the_end;
 
 				/**
 				 * An all-day event will also cross the EOD cut-off if the site timezone setting is set to "site" and
@@ -159,11 +162,11 @@ class Event extends Base {
 				if ( $all_day && ! $use_event_timezone ) {
 					// Calculate the cutoff of the last day of the event in the site timezone.
 					$end_day_cutoff = Dates::build_date_object(
-						tribe_beginning_of_day( $end_site->format( Dates::DBDATEFORMAT . ' 00:00:00' ) ),
+						Dates::get_shifted_end_of_day( $end_site ),
 						$end_site->getTimezone()
 					);
 
-					$cross_day = $end_day_cutoff > $start_site && $end_site > $end_day_cutoff;
+					$cross_day = $end_day_cutoff > $start_site;
 				}
 
 				if ( $happens_this_week ) {

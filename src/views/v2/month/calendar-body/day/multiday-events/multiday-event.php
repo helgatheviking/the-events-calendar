@@ -28,8 +28,14 @@ use Tribe__Date_Utils as Dates;
  * To keep the calendar accessible, in the context of a week, we'll print the event only on either its first day
  * or the first day of the week.
  */
-$should_display = $event->dates->start_display->format( 'Y-m-d' ) === $day_date
-                  || $is_start_of_week;
+//$should_display = $event->dates->start_display->format( 'Y-m-d' ) === $day_date
+//                  || $is_start_of_week;
+
+$this_day_cutoff = Dates::get_shifted_end_of_day( $day_date );
+$start           = Dates::get_shifted_start_of_day( $event->dates->start_display );
+$end             = Dates::get_shifted_end_of_day( $event->dates->start_display );
+
+$should_display = ( $this_day_cutoff >= $start && $this_day_cutoff <= $end ) || $is_start_of_week;
 
 $classes = tribe_get_post_class( [ 'tribe-events-calendar-month__multiday-event' ], $event->ID );
 
